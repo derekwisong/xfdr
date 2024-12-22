@@ -1,6 +1,6 @@
+pub mod detection;
 pub mod fdr;
 pub mod garmin;
-pub mod detection;
 
 use clap::{Parser, ValueEnum};
 use std::path::PathBuf;

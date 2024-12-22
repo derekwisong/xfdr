@@ -37,9 +37,7 @@ fn main() {
 
     // open the output file for writing
     let mut output: Box<dyn std::io::Write> = args.output.as_ref().map_or_else(
-        || {
-            Box::new(std::io::stdout()) as Box<dyn std::io::Write>
-        },
+        || Box::new(std::io::stdout()) as Box<dyn std::io::Write>,
         |p| {
             Box::new(File::create(&p).unwrap_or_else(|e| {
                 eprintln!("Unable to create output file: {}", e);

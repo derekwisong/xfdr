@@ -29,9 +29,12 @@ pub fn detect_source(_path: &Path) -> Result<AviationLogSourceOption, SourceDete
 }
 
 /// Read an avionics log file into a data structure
-/// 
+///
 /// This is where all logic about how to build each source type belongs
-pub fn read_avionics_log(source: &AviationLogSourceOption, path: &Path) -> Result<Box<dyn FlightDataSource>, Box<dyn Error>> {
+pub fn read_avionics_log(
+    source: &AviationLogSourceOption,
+    path: &Path,
+) -> Result<Box<dyn FlightDataSource>, Box<dyn Error>> {
     match source {
         AviationLogSourceOption::Garmin => Ok(Box::new(garmin::GarminLogFile::new(path)?)),
     }
