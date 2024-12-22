@@ -1,0 +1,19 @@
+[package]
+name = "xfdr"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chrono = "0.4.39"
+clap = { version = "4.5.23", features = ["derive"] }
+criterion = "0.5.1"
+polars = { version = "0.45.0", features = [
+    "lazy",
+    "csv",
+    "dtype-struct",
+    "dtype-date",
+    "strings",
+    "concat_str",
+    "timezones",
+] }
+tempfile = "3.14.0"
