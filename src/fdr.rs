@@ -114,10 +114,6 @@ pub struct FDRConfiguration {
 }
 
 impl FDRConfiguration {
-    pub fn new() -> FDRConfigurationBuilder {
-        FDRConfigurationBuilder::default()
-    }
-
     pub fn tail_number(&self, source: &Box<dyn FlightDataSource>) -> String {
         match &self.tail_number_override {
             Some(tail_number) => tail_number.to_string(),
@@ -268,6 +264,8 @@ impl FDRWriter {
 mod tests {
     use std::{io::BufWriter, path::PathBuf};
 
+    use crate::{detection::read_avionics_log, AviationLogSourceOption};
+
     use super::*;
 
     const SAMPLE_CSV_FILE: &str = "log_231104_084813_KPOU.csv";
@@ -291,14 +289,15 @@ mod tests {
     }
 
     #[test]
-    fn test_fdr_writer() {
+    fn test_fdr_writer() -> Result<(), Box<dyn std::error::Error>> {
         let cfg = FDRConfigurationBuilder::default().build();
         let writer = FDRWriter::new(cfg);
-        let source: Box<dyn FlightDataSource> =
-            Box::new(crate::garmin::GarminLogFile::new(&PathBuf::from(sample_csv())).unwrap());
+        let path = PathBuf::from(sample_csv());
+        let data = read_avionics_log(&AviationLogSourceOption::Garmin, &path)?;
         let mut buffer = BufWriter::new(Vec::new());
-        writer.write(source, &mut buffer).unwrap();
+        writer.write(data, &mut buffer).unwrap();
         let contents = buffer.into_inner().unwrap();
         assert_eq!(contents.is_empty(), false); // 22 is temporary, actual value will vary
+        Ok(())
     }
 }

@@ -7,7 +7,7 @@ use clap::Parser;
 use std::fs::File;
 use std::io::ErrorKind;
 use xfdr::detection::{detect_source, read_avionics_log};
-use xfdr::fdr::{self, FDRConfiguration, FDRWriter};
+use xfdr::fdr::{self, FDRConfigurationBuilder, FDRWriter};
 use xfdr::Args;
 
 /// Entrypoint for the xfdr binary
@@ -29,7 +29,7 @@ fn main() {
     });
 
     // config tells the writer how to format the output
-    let config = FDRConfiguration::new()
+    let config = FDRConfigurationBuilder::default()
         .aircraft_model(args.aircraft)
         .tail_number_override(args.tail_number)
         .strict(args.strict)
