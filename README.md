@@ -1,6 +1,6 @@
 # xfdr
 
-Debrief or relive a flight in X-Plane using `xfdr` to export your avionics logs to
+Debrief or relive a flight in X-Plane after using `xfdr` to export your avionics logs to
 [flight data recorder files](https://www.x-plane.com/kb/fdr-files-x-plane-11/).
 
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/derekwisong/xfdr/build.yaml)
