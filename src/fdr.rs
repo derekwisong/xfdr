@@ -40,6 +40,7 @@ pub struct FlightDataBlock {
 pub enum FlightDataError {
     MissingDrefs(Vec<String>),
     UnknownColumn(String),
+    InsufficientData,
 }
 
 impl Error for FlightDataError {}
@@ -52,6 +53,9 @@ impl std::fmt::Display for FlightDataError {
             }
             FlightDataError::UnknownColumn(column) => {
                 write!(f, "Unknown column: {}", column)
+            }
+            FlightDataError::InsufficientData => {
+                write!(f, "Insufficient data")
             }
         }
     }
@@ -111,6 +115,8 @@ pub struct FDRConfiguration {
     pub defaut_tail_number: String,
     pub tail_number_override: Option<String>,
     pub strict: bool,
+    pub auto_drefs: bool,
+    pub allow_nulls: bool,
 }
 
 impl FDRConfiguration {
@@ -137,6 +143,8 @@ pub struct FDRConfigurationBuilder {
     default_tail_number: String,
     tail_number_override: Option<String>,
     strict: bool,
+    auto_drefs: bool,
+    allow_nulls: bool,
 }
 
 impl Default for FDRConfigurationBuilder {
@@ -146,6 +154,8 @@ impl Default for FDRConfigurationBuilder {
             default_tail_number: "N12345".to_string(),
             tail_number_override: None,
             strict: false,
+            auto_drefs: false,
+            allow_nulls: false,
         }
     }
 }
@@ -154,6 +164,18 @@ impl FDRConfigurationBuilder {
     /// The path to an aircraft file, relative to the X-Plane root, to be used as the aircraft model during replay
     pub fn aircraft_model(mut self, model: String) -> Self {
         self.aircraft_model = Some(model);
+        self
+    }
+
+    /// If set, allow data records with null values to be written to the FDR file
+    pub fn allow_nulls(mut self, allow_nulls: bool) -> Self {
+        self.allow_nulls = allow_nulls;
+        self
+    }
+
+    /// If set, automatically map fields in the data source to X-Plane datarefs
+    pub fn auto_drefs(mut self, auto_drefs: bool) -> Self {
+        self.auto_drefs = auto_drefs;
         self
     }
 
@@ -182,6 +204,8 @@ impl FDRConfigurationBuilder {
             defaut_tail_number: self.default_tail_number,
             tail_number_override: self.tail_number_override,
             strict: self.strict,
+            auto_drefs: self.auto_drefs,
+            allow_nulls: self.allow_nulls,
         }
     }
 }
@@ -211,7 +235,13 @@ impl From<std::io::Error> for FDRWriteError {
 
 impl From<polars::error::PolarsError> for FDRWriteError {
     fn from(err: polars::error::PolarsError) -> Self {
-        FDRWriteError::Polars(err)
+        match err {
+            PolarsError::IO { error, msg } => FDRWriteError::IO(std::io::Error::new(
+                error.kind(),
+                msg.map_or_else(|| error.to_string(), |m| m.to_string()),
+            )),
+            _ => FDRWriteError::Polars(err),
+        }
     }
 }
 
@@ -252,6 +282,10 @@ impl FDRWriter {
         let mut df = data_block.data;
         if let Ok(ts) = df.column("timestamp")?.datetime()?.strftime("%H:%M:%S") {
             df.with_column(ts)?;
+        }
+        
+        if !self.config.allow_nulls {
+            df = df.drop_nulls::<String>(None)?;
         }
 
         // write the csv data

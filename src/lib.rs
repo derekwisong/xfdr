@@ -41,6 +41,14 @@ pub struct Args {
     /// If set, do not ignore unknown data fields in the avionics log
     #[arg(long, default_value = "false")]
     pub strict: bool,
+
+    /// If set, automatically map fields in the data source to X-Plane datarefs
+    #[arg(long, default_value = "false")]
+    pub auto_drefs: bool,
+
+    /// If set, allow data records with null values to be written to the FDR file
+    #[arg(long, default_value = "false")]
+    pub allow_nulls: bool,
 }
 
 /// Supported avionics log sources that can be used as command line arguments

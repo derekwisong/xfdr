@@ -33,6 +33,8 @@ fn main() {
         .aircraft_model(args.aircraft)
         .tail_number_override(args.tail_number)
         .strict(args.strict)
+        .auto_drefs(args.auto_drefs)
+        .allow_nulls(args.allow_nulls)
         .build();
 
     // open the output file for writing

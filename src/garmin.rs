@@ -77,44 +77,59 @@ impl FlightDataSource for GarminLogFile {
     }
 
     fn data_block(&self, config: &FDRConfiguration) -> Result<FlightDataBlock, FlightDataError> {
-        let dref_map = build_dref_map();
         const MANDATORY_COLS: usize = 7;
 
-        // get the datarefs for the columns we care about, None for entries that dont map
-        let drefs: Vec<Option<DataRef>> = self
-            .data
-            .get_column_names()
-            .iter()
-            .skip(MANDATORY_COLS)
-            .map(|name| dref_map.get(name.as_str()).map_or(None, |dref| Some(dref.clone())))
-            .collect();
-
-        // indices of missing drefs
-        let mising_idx: Vec<usize> = drefs
-            .iter()
-            .enumerate()
-            .filter(|(_, dref)| dref.is_none())
-            .map(|(idx, _)| idx + MANDATORY_COLS)
-            .collect();
-
-        if config.strict && !mising_idx.is_empty() {
-            return Err(FlightDataError::MissingDrefs(
-                mising_idx
+        return if !config.auto_drefs {
+            // select the MANDATORY_COLUMNS
+            match self.data.select(
+                self.data
+                    .get_column_names()
                     .iter()
-                    .map(|i| self.data.get_column_names()[*i].to_string())
-                    .collect(),
-            ));
-        }
+                    .take(MANDATORY_COLS)
+                    .map(|s| s.as_str())
+                    .collect::<Vec<&str>>(),
+            ) {
+                Ok(data) => Ok(FlightDataBlock::new(vec![], data)?),
+                Err(_) => Err(FlightDataError::InsufficientData),
+            }
+        } else {
+            let dref_map = build_dref_map();
+            // get the datarefs for the columns we care about, None for entries that dont map
+            let drefs: Vec<Option<DataRef>> = self
+                .data
+                .get_column_names()
+                .iter()
+                .skip(MANDATORY_COLS)
+                .map(|name| dref_map.get(name.as_str()).map_or(None, |dref| Some(dref.clone())))
+                .collect();
 
-        // remove missing drefs and missing columns
-        let missing_names: Vec<&str> = mising_idx
-            .iter()
-            .map(|i| self.data.get_column_names()[*i].as_str())
-            .collect();
+            // indices of missing drefs
+            let mising_idx: Vec<usize> = drefs
+                .iter()
+                .enumerate()
+                .filter(|(_, dref)| dref.is_none())
+                .map(|(idx, _)| idx + MANDATORY_COLS)
+                .collect();
 
-        let data = self.data.clone().drop_many(missing_names);
-        let drefs = drefs.into_iter().filter_map(|x| x).collect();
-        Ok(FlightDataBlock::new(drefs, data)?)
+            if config.strict && !mising_idx.is_empty() {
+                return Err(FlightDataError::MissingDrefs(
+                    mising_idx
+                        .iter()
+                        .map(|i| self.data.get_column_names()[*i].to_string())
+                        .collect(),
+                ));
+            }
+
+            // remove missing drefs and missing columns
+            let missing_names: Vec<&str> = mising_idx
+                .iter()
+                .map(|i| self.data.get_column_names()[*i].as_str())
+                .collect();
+
+            let data = self.data.clone().drop_many(missing_names);
+            let drefs = drefs.into_iter().filter_map(|x| x).collect();
+            Ok(FlightDataBlock::new(drefs, data)?)
+        };
     }
 }
 
