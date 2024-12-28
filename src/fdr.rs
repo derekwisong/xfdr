@@ -283,7 +283,7 @@ impl FDRWriter {
         if let Ok(ts) = df.column("timestamp")?.datetime()?.strftime("%H:%M:%S") {
             df.with_column(ts)?;
         }
-        
+
         if !self.config.allow_nulls {
             df = df.drop_nulls::<String>(None)?;
         }
